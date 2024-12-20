@@ -2,13 +2,14 @@ package services
 
 import (
 	"errors"
+	"log"
+	"os"
+
 	nft_proxy "github.com/alphabatem/nft-proxy"
 	"github.com/babilu-online/common/context"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	"os"
 )
 
 type SqliteService struct {
@@ -23,12 +24,12 @@ type SqliteService struct {
 
 const SQLITE_SVC = "sqlite_svc"
 
-//Id returns Service ID
+// Id returns Service ID
 func (ds SqliteService) Id() string {
 	return SQLITE_SVC
 }
 
-//Db Access to raw SqliteService db
+// Db Access to raw SqliteService db
 func (ds SqliteService) Db() *gorm.DB {
 	return ds.db
 }
@@ -36,7 +37,9 @@ func (ds SqliteService) Db() *gorm.DB {
 // Configure the service
 func (ds *SqliteService) Configure(ctx *context.Context) error {
 	ds.database = os.Getenv("DB_DATABASE")
-
+	if ds.database == "" {
+		return errors.New("DB_DATABASE environment variable not set")
+	}
 	return ds.DefaultService.Configure(ctx)
 }
 
@@ -58,7 +61,7 @@ func (ds *SqliteService) Start() (err error) {
 	return nil
 }
 
-//Find returns the db query for a statement
+// Find returns the db query for a statement
 func (ds *SqliteService) Find(out interface{}, where string, args ...interface{}) error {
 	return ds.error(ds.db.Find(out, where, args).Error)
 }
@@ -81,18 +84,23 @@ func (ds *SqliteService) Delete(val interface{}) error {
 	return ds.error(err)
 }
 
-//Migrate creates any new tables needed
+// Migrate creates any new tables needed
 func (ds *SqliteService) Migrate(values ...interface{}) error {
 	err := ds.db.AutoMigrate(values).Error()
-	if err != "" {
+	if err != nil {
 		return errors.New(err)
 	}
 	return nil
 }
 
-//Shutdown Gracefully close the database connection
+// Shutdown Gracefully close the database connection
 func (ds *SqliteService) Shutdown() {
-	//
+	if ds.db != nil {
+		sqlDB, err := ds.db.DB()
+		if err == nil {
+			_ = sqlDB.Close()
+		}
+	}
 }
 
 // Parse an error returned from the database into a more contextual error that can be used with http response codes

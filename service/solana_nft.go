@@ -2,16 +2,17 @@ package services
 
 import (
 	"encoding/json"
-	nft_proxy "github.com/alphabatem/nft-proxy"
-	token_metadata "github.com/alphabatem/nft-proxy/token-metadata"
-	"github.com/babilu-online/common/context"
-	"github.com/gagliardetto/solana-go"
-	"gorm.io/gorm/clause"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	nft_proxy "github.com/alphabatem/nft-proxy"
+	token_metadata "github.com/alphabatem/nft-proxy/token-metadata"
+	"github.com/babilu-online/common/context"
+	"github.com/gagliardetto/solana-go"
+	"gorm.io/gorm/clause"
 )
 
 type SolanaImageService struct {
@@ -40,7 +41,9 @@ func (svc *SolanaImageService) Media(key string, skipCache bool) (*nft_proxy.Med
 	var media *nft_proxy.SolanaMedia
 	err := svc.sql.Db().First(&media, "mint = ?", key).Error
 	if err != nil || skipCache {
-		log.Printf("FetchMetadata - %s err: %s", key, err)
+		if err != nil {
+			log.Printf("FetchMetadata - %s err: %s", key, err)
+		}
 		media, err = svc.FetchMetadata(key)
 		if err != nil {
 			return nil, err //Still cant get metadata

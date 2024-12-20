@@ -3,17 +3,17 @@ package services
 import (
 	ctx "context"
 	"errors"
+	"log"
+	"os"
+	"strings"
+
 	nft_proxy "github.com/alphabatem/nft-proxy"
 	"github.com/alphabatem/nft-proxy/metaplex_core"
 	token_metadata "github.com/alphabatem/nft-proxy/token-metadata"
-	"github.com/alphabatem/token_2022_go"
 	"github.com/babilu-online/common/context"
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	"log"
-	"os"
-	"strings"
 )
 
 type SolanaService struct {
@@ -28,8 +28,11 @@ func (svc SolanaService) Id() string {
 }
 
 func (svc *SolanaService) Start() error {
-	svc.client = rpc.New(os.Getenv("RPC_URL"))
-
+	rpcURL := os.Getenv("RPC_URL")
+	if rpcURL == "" {
+		return errors.New("missing RPC_URL environment variable")
+	}
+	svc.client = rpc.New(rpcURL)
 	return nil
 }
 
@@ -50,8 +53,14 @@ func (svc *SolanaService) TokenData(key solana.PublicKey) (*token_metadata.Metad
 	var meta token_metadata.Metadata
 	var mint token_2022.Mint
 
+	publicKey, err := solana.MustPublicKeyFromBase58("META4s4fSmpkTbZoUsgC1oBnWB31vQcmnN8giPw51Zu")
+
+	if err != nil {
+		return nil, 0, err
+	}
+
 	ata, _, _ := svc.FindTokenMetadataAddress(key, solana.TokenMetadataProgramID)
-	ataT22, _, _ := svc.FindTokenMetadataAddress(key, solana.MustPublicKeyFromBase58("META4s4fSmpkTbZoUsgC1oBnWB31vQcmnN8giPw51Zu"))
+	ataT22, _, _ := svc.FindTokenMetadataAddress(key, publicKey)
 
 	accs, err := svc.client.GetMultipleAccountsWithOpts(ctx.TODO(), []solana.PublicKey{key, ata, ataT22}, &rpc.GetMultipleAccountsOpts{Commitment: rpc.CommitmentProcessed})
 	if err != nil {
@@ -63,9 +72,11 @@ func (svc *SolanaService) TokenData(key solana.PublicKey) (*token_metadata.Metad
 		//log.Printf("SolanaService::TokenData:%s - Owner: %s", key, accs.Value[0].Owner)
 
 		err := mint.UnmarshalWithDecoder(bin.NewBinDecoder(accs.Value[0].Data.GetBinary()))
-		if err == nil {
-			decimals = mint.Decimals
+		if err != nil {
+			return nil, decimals, err
 		}
+
+		decimals = mint.Decimals
 
 		switch accs.Value[0].Owner {
 		case nft_proxy.METAPLEX_CORE:
@@ -81,7 +92,7 @@ func (svc *SolanaService) TokenData(key solana.PublicKey) (*token_metadata.Metad
 			exts, err := mint.Extensions()
 			if err != nil {
 				log.Printf("T22 Ext err: %s", err)
-				break
+				return nil, decimals, err
 			}
 			if exts != nil && exts.TokenMetadata != nil {
 				return &token_metadata.Metadata{

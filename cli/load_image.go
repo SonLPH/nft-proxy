@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"log"
+	"os"
+
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/joho/godotenv"
-	"log"
-	"os"
 )
 
 func init() {

@@ -3,15 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	nft_proxy "github.com/alphabatem/nft-proxy"
-	"github.com/alphabatem/nft-proxy/service"
-	"github.com/babilu-online/common/context"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	nft_proxy "github.com/alphabatem/nft-proxy"
+	services "github.com/alphabatem/nft-proxy/service"
+	"github.com/babilu-online/common/context"
+	"github.com/joho/godotenv"
 )
 
 func init() {
@@ -96,6 +97,7 @@ func reloadRemote(hashes Hashlist) error {
 		_, err := c.Get(fmt.Sprintf("https://api.degencdn.com/v1/nfts/%s/image.jpg", h))
 		if err != nil {
 			log.Printf("Failed media: %s - %s", h, err)
+			return err
 		}
 	}
 	return nil
@@ -107,6 +109,7 @@ func reloadLocally(img *services.SolanaImageService, hashes Hashlist) error {
 		_, err := img.Media(h, true)
 		if err != nil {
 			log.Printf("Failed media: %s - %s", h, err)
+			return err
 		}
 	}
 	return nil

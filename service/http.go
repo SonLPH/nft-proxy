@@ -3,9 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"github.com/babilu-online/common/context"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -13,6 +10,10 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/babilu-online/common/context"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 // @title NFT Aggregator Swap API
@@ -44,6 +45,10 @@ func (svc HttpService) Id() string {
 
 func (svc *HttpService) Configure(ctx *context.Context) error {
 	port := os.Getenv("HTTP_PORT")
+	if port == "" {
+		return errors.New("HTTP_PORT environment variable not set")
+	}
+
 	portFlag, err := strconv.Atoi(port)
 	if err != nil {
 		return err

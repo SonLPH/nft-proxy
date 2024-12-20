@@ -9,14 +9,13 @@ type NFTMetadataSimple struct {
 	//Description          string               `json:"description"`
 	//SellerFeeBasisPoints float64              `json:"seller_fee_basis_points"`
 	Image        string `json:"image"`
-	AnimationURL string `json:"animation_url"`
-	ExternalURL  string `json:"external_url"`
+	AnimationURL string `json:"animationUrl"`
+	ExternalURL  string `json:"externalUrl"`
 	//Collection   NFTCollectionSimple `json:"collection"`
 	Properties NFTPropertiesSimple `json:"properties"`
 	//Attributes           []NFTAttributeSimple `json:"attributes"`
-	Files []NFTFiles `json:"files"`
-
-	UpdateAuthority string `json:"updateAuthority"`
+	Files           []NFTFiles `json:"files"`
+	UpdateAuthority string     `json:"updateAuthority"`
 }
 
 func (m *NFTMetadataSimple) AnimationFile() *NFTFiles {
@@ -40,7 +39,7 @@ func (m *NFTMetadataSimple) ImageFile() *NFTFiles {
 }
 
 type NFTFiles struct {
-	URL  string `json:"URL"`
+	URL  string `json:"url"`
 	Type string `json:"type"`
 }
 
@@ -60,7 +59,7 @@ type NFTCreatorSimple struct {
 }
 
 type NFTAttributeSimple struct {
-	TraitType string      `json:"trait_type"`
+	TraitType string      `json:"traitType"`
 	Value     interface{} `json:"value"`
 }
 

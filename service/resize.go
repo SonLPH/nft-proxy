@@ -2,19 +2,21 @@ package services
 
 import (
 	"bytes"
-	"github.com/babilu-online/common/context"
-	"github.com/nfnt/resize"
-	"golang.org/x/image/draw"
 	"image"
 	"image/color/palette"
 	"image/gif"
 	"log"
 
-	_ "golang.org/x/image/vp8"
-	_ "golang.org/x/image/webp"
+	"github.com/babilu-online/common/context"
+	"github.com/nfnt/resize"
+	"golang.org/x/image/draw"
+
 	"image/jpeg"
 	"image/png"
 	"io"
+
+	_ "golang.org/x/image/vp8"
+	_ "golang.org/x/image/webp"
 )
 
 type ResizeService struct {
@@ -32,68 +34,66 @@ func (svc *ResizeService) Start() error {
 }
 
 func (svc *ResizeService) Resize(data []byte, out io.Writer, size int) error {
-	src, typ, err := image.Decode(bytes.NewReader(data))
+	src, imgType, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
 
-	if typ == "gif" {
-		g2, err := svc.resizeGif(data, 0, size/2)
+	if imgType == "gif" {
+		resizedGif, err := svc.resizeGif(data, 0, size/2)
 		if err != nil {
 			return err
 		}
 
-		return gif.EncodeAll(out, g2)
+		return gif.EncodeAll(out, resizedGif)
 	}
 
 	// Resize:
 	dst := resize.Resize(0, uint(size), src, resize.MitchellNetravali)
 
-	switch typ {
+	switch imgType {
 	case "png":
 		return png.Encode(out, dst)
-	case "jpeg":
-		return jpeg.Encode(out, dst, &jpeg.Options{Quality: 100})
-	case "jpg":
+	case "jpeg", "jpg":
 		return jpeg.Encode(out, dst, &jpeg.Options{Quality: 100})
 	default:
-		log.Printf("Unsupported media type (%s) encoding as jpeg", typ)
+		log.Printf("Unsupported media type (%s), encoding as jpeg", imgType)
 		return jpeg.Encode(out, dst, &jpeg.Options{Quality: 100})
 	}
 }
 
 func (svc *ResizeService) resizeGif(data []byte, width, height int) (*gif.GIF, error) {
-	im, err := gif.DecodeAll(bytes.NewReader(data))
+	gifImage, err := gif.DecodeAll(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
 
 	if width == 0 {
-		width = int(im.Config.Width * height / im.Config.Width)
+		width = int(gifImage.Config.Width * height / gifImage.Config.Width)
 	} else if height == 0 {
-		height = int(width * im.Config.Height / im.Config.Width)
+		height = int(width * gifImage.Config.Height / gifImage.Config.Width)
 	}
 
 	// reset the gif width and height
-	im.Config.Width = width
-	im.Config.Height = height
+	gifImage.Config.Width = width
+	gifImage.Config.Height = height
 
-	firstFrame := im.Image[0].Bounds()
+	firstFrame := gifImage.Image[0].Bounds()
 	img := image.NewRGBA(image.Rect(0, 0, firstFrame.Dx(), firstFrame.Dy()))
 
 	// resize frame by frame
-	for index, frame := range im.Image {
-		b := frame.Bounds()
-		draw.Draw(img, b, frame, b.Min, draw.Over)
-		im.Image[index] = svc.imageToPaletted(resize.Resize(uint(width), uint(height), img, resize.MitchellNetravali))
+	for index, frame := range gifImage.Image {
+		frameBounds := frame.Bounds()
+		draw.Draw(img, frameBounds, frame, frameBounds.Min, draw.Over)
+		gifImage.Image[index] = svc.imageToPaletted(resize.Resize(uint(width), uint(height), img, resize.MitchellNetravali))
 	}
 
-	return im, nil
+	return gifImage, nil
 }
 
 func (svc *ResizeService) imageToPaletted(img image.Image) *image.Paletted {
-	b := img.Bounds()
-	pm := image.NewPaletted(b, palette.Plan9)
-	draw.FloydSteinberg.Draw(pm, b, img, image.ZP)
-	return pm
+	frameBounds := img.Bounds()
+	palettedImg := image.NewPaletted(frameBounds, palette.Plan9)
+	draw.FloydSteinberg.Draw(palettedImg, frameBounds, img, image.ZP)
+	return palettedImg
 }

@@ -1,9 +1,10 @@
 package services
 
 import (
+	"sync/atomic"
+
 	nft_proxy "github.com/alphabatem/nft-proxy"
 	"github.com/babilu-online/common/context"
-	"sync/atomic"
 )
 
 type StatService struct {
@@ -24,7 +25,6 @@ func (svc StatService) Id() string {
 
 func (svc *StatService) Start() error {
 	svc.sql = svc.Service(SQLITE_SVC).(*SqliteService)
-
 	return nil
 }
 
@@ -42,7 +42,11 @@ func (svc *StatService) IncrementMediaRequests() {
 
 func (svc *StatService) ServiceStats() (map[string]interface{}, error) {
 	var imgCount int64
-	svc.sql.Db().Model(&nft_proxy.SolanaMedia{}).Count(&imgCount)
+	err := svc.sql.Db().Model(&nft_proxy.SolanaMedia{}).Count(&imgCount).Error
+
+	if err != nil {
+		return nil, err
+	}
 
 	return map[string]interface{}{
 		"images_stored":      imgCount,
